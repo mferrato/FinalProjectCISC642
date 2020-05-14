@@ -101,6 +101,8 @@ class CreateDataset():
     def load_pose(self):
         pose_array = []
         for i in self.pose.imgs:
-            image = json.loads(i)
-            pose_array.append(image)
+            with open(i, 'r') as read_file:
+                image = json.load(read_file)
+                pose_array.append(image)
         self.pose = pose_array
+
