@@ -8,3 +8,5 @@ Additionally, we have a subset of the dataset, containing 100 total items (20 pe
 A directory of compressed results from the Geometric Matching Module (GMM) can be found [here](https://drive.google.com/open?id=1eOS3bv0h7cuB54EzpjqsWRgAEqHjJGxZ)
 
 A directory of compressed results from the Try-On Module can be found [here](https://drive.google.com/open?id=1JN2lr0zGCy35YB9tRxbRal9ZwrImmfDu)
+
+Additionally, we have a subset of the warped-cloth and warped-mask from the train and test set for the GMM and a subset of virtual try-on result images from the train and test set for the Try-On module.
