@@ -19,22 +19,22 @@ class Dataset(data.Dataset):
         self.datamode = opt.datamode # train or test
         self.model = mod
         self.data_list = 'train_pairs.txt'
-        if(self.datamode == 'test')
+        if(self.datamode == 'test'):
             self.data_list = 'test_pairs.txt'
-        self.fine_height = 192
-        self.width = 256
+        self.width = 192
+        self.height = 256
         self.r = 5 # radius
-        self.data_path = osp.join(opt.dataroot, opt.datamode)
+        self.data_path = osp.join(self.root, opt.datamode)
         self.transform = transforms.Compose([
                         transforms.ToTensor(), transforms.Normalize([0.5], [0.5])])
 
         # load data list
         person_names = []
         clothes_names = []
-        with open(osp.join(opt.dataroot, opt.data_list), 'r') as f:
+        with open(osp.join(self.root, self.data_list), 'r') as f:
             for line in f.readlines():
                 person_name, cloth_name = line.strip().split()
-                person_names.append(image_name)
+                person_names.append(person_name)
                 clothes_names.append(cloth_name)
 
         self.person_names = person_names
@@ -87,7 +87,7 @@ class Dataset(data.Dataset):
         im_h = person * person_head - (1 - person_head)
 
         # load pose points
-        pose_name = im_name.replace('.jpg', '_keypoints.json')
+        pose_name = person_name.replace('.jpg', '_keypoints.json')
         with open(osp.join(self.data_path, 'pose', pose_name), 'r') as f:
             pose_label = json.load(f)
             pose_data = pose_label['people'][0]['pose_keypoints']
@@ -100,13 +100,13 @@ class Dataset(data.Dataset):
         pose_draw = ImageDraw.Draw(im_pose)
         for i in range(point_num):
             temp_map = Image.new('L', (self.width, self.height))
-            draw = ImageDraw.Draw(map)
+            draw = ImageDraw.Draw(temp_map)
             x = pose_data[i,0]
             y = pose_data[i,1]
             if x > 1 and y > 1:
                 draw.rectangle((x - self.r, y - self.r, x + self.r, y + self.r), 'white', 'white')
                 pose_draw.rectangle((x - self.r, y - self.r, x + self.r, y + self.r), 'white', 'white')
-            temp_map = self.transform(map)
+            temp_map = self.transform(temp_map)
             pose_map[i] = temp_map[0]
 
         representation = torch.cat([shape, im_h, pose_map], 0)
@@ -114,6 +114,7 @@ class Dataset(data.Dataset):
         result = {
             'cloth_name':   cloth_name,
             'person_name':  person_name,
+            'person': person,
             'cloth':    cloth,
             'cloth_mask':     cloth_mask,
             'agnostic': representation,
@@ -132,8 +133,8 @@ class DataLoader(object):
         train_sampler = torch.utils.data.sampler.RandomSampler(dataset)
 
         self.data_loader = torch.utils.data.DataLoader(
-                dataset, batch_size=opt.batch_size, shuffle=True,
-                num_workers=opt.workers, pin_memory=True, sampler=train_sampler)
+                dataset, batch_size=4, shuffle=(train_sampler is None),
+                num_workers=1, pin_memory=True, sampler=train_sampler)
         self.dataset = dataset
         self.data_iter = self.data_loader.__iter__()
 
@@ -157,4 +158,4 @@ def save_images(img_tensors, img_names, save_dir):
         elif array.shape[0] == 3:
             array = array.swapaxes(0, 1).swapaxes(1, 2)
 
-        Image.fromarray(array).save(os.path.join(save_dir, img_name))
+        Image.fromarray(array).save(osp.join(save_dir, img_name))

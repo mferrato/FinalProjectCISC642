@@ -257,10 +257,6 @@ class TpsGridGen(nn.Module):
 
         return torch.cat((points_X_prime,points_Y_prime),3)
 
-# Defines the Unet generator.
-# |num_downs|: number of downsamplings in UNet. For example,
-# if |num_downs| == 7, image of size 128x128 will become of size 1x1
-# at the bottleneck
 class UnetGenerator(nn.Module):
     def __init__(self, input_nc, output_nc, num_downs, ngf=64,
                  norm_layer=nn.BatchNorm2d, use_dropout=False):
@@ -280,9 +276,6 @@ class UnetGenerator(nn.Module):
         return self.model(input)
 
 
-# Defines the submodule with skip connection.
-# X -------------------identity---------------------- X
-#   |-- downsampling -- |submodule| -- upsampling --|
 class UnetSkipConnectionBlock(nn.Module):
     def __init__(self, outer_nc, inner_nc, input_nc=None,
                  submodule=None, outermost=False, innermost=False, norm_layer=nn.BatchNorm2d, use_dropout=False):
@@ -387,16 +380,16 @@ class GMM(nn.Module):
         super(GMM, self).__init__()
 
         # Extracts features from person
-        self.extractionA = FeatureExtraction(22, ngf=64, n_layers=3, norm_layer=nn.BatchNorm2d)
+        self.extractionA = FeatureExtraction(22, ngf=64, norm_layer=nn.BatchNorm2d)
         # Extracts features from clothes
-        self.extractionB = FeatureExtraction(3, ngf=64, n_layers=3, norm_layer=nn.BatchNorm2d)
+        self.extractionB = FeatureExtraction(3, ngf=64, norm_layer=nn.BatchNorm2d)
         # Normalizes and combines the feature maps
         self.l2norm = FeatureL2Norm()
         self.correlation = FeatureCorrelation()
         # Performs regression network to find parameters
         self.regression = FeatureRegression(input_nc=192, output_dim=2 * 5 ** 2, use_cuda=True)
         # Warps the image
-        self.gridGen = TpsGridGen(opt.fine_height, opt.fine_width, use_cuda=True)
+        self.gridGen = TpsGridGen(256, 192, use_cuda=True)
 
     def forward(self, inputA, inputB):
         featureA = self.extractionA(inputA)

@@ -8,15 +8,13 @@ import time
 from data_manager import Dataset, DataLoader, save_images
 from models import UnetGenerator, VGGLoss, load_checkpoint
 
-from visualization import save_images
-
-
 def get_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", default = "TOM")
     parser.add_argument('-b', type=int, default=4)
     parser.add_argument("--datamode", default = "train")
     parser.add_argument("--stage", default = "train")
+    parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--checkpoint_dir', type=str, default='checkpoints')
     parser.add_argument('--checkpoint', type=str, default='')
     parser.add_argument("--max_step", type=int, default = 20000)
@@ -24,7 +22,7 @@ def get_opt():
     opt = parser.parse_args()
     return opt
 
-def train_tom(opt, loader, model, board):
+def train_tom(opt, loader, model):
     model.cuda()
     model.train()
 
@@ -41,8 +39,8 @@ def train_tom(opt, loader, model, board):
         iter_start_time = time.time()
         inputs = loader.next_batch()
 
-        im = inputs['image'].cuda()
-        agnostic = inputs['representation'].cuda()
+        im = inputs['person'].cuda()
+        agnostic = inputs['agnostic'].cuda()
         c = inputs['cloth'].cuda()
         cm = inputs['cloth_mask'].cuda()
 
@@ -60,13 +58,13 @@ def train_tom(opt, loader, model, board):
         loss.backward()
         optimizer.step()
 
-        if (step + 1) % opt.display_count == 0:
+        if (step + 1) % 50 == 0:
             t = time.time() - iter_start_time
             print('step: %8d, time: %.3f, loss: %.4f, l1: %.4f, vgg: %.4f, mask: %.4f'
                     % (step+1, t, loss.item(), loss_l1.item(),
                     loss_vgg.item(), loss_mask.item()))
 
-        if (step+1) % opt.save_count == 0:
+        if (step+1) % 500 == 0:
             save_checkpoint(model, os.path.join(opt.checkpoint_dir, opt.name, 'step_%06d.pth' % (step+1)))
 
 def test_tom(opt, loader, model):
@@ -74,7 +72,7 @@ def test_tom(opt, loader, model):
     model.eval()
 
     base_name = os.path.basename(opt.name)
-    save_dir = os.path.join(opt.result_dir, base_name, opt.datamode)
+    save_dir = os.path.join("results", base_name, opt.datamode)
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     try_on_dir = os.path.join(save_dir, 'try-on')
@@ -85,7 +83,7 @@ def test_tom(opt, loader, model):
         iter_start_time = time.time()
 
         person_names = inputs['person_name']
-        agnostic = inputs['representation'].cuda()
+        agnostic = inputs['agnostic'].cuda()
         c = inputs['cloth'].cuda()
         cm = inputs['cloth_mask'].cuda()
 
@@ -108,8 +106,8 @@ def main():
     print("TOM: Start to %s, named: %s!" % (opt.datamode, opt.name))
 
     # Dataset setup
-    dataset = Dataset(opt)
-    data_loader = DataLoader(opt, dataset, "TOM")
+    dataset = Dataset(opt, "TOM")
+    data_loader = DataLoader(opt, dataset)
 
     model = UnetGenerator(25, 4, 6, ngf=64, norm_layer=nn.InstanceNorm2d)
 

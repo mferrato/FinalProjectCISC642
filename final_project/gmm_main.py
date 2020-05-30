@@ -33,7 +33,7 @@ def train_gmm(opt, loader, model):
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = lambda step: 1.0 -
             max(0, step - opt.max_step) / float((opt.max_step//2) + 1))
 
-    for step in range(opt.max_Step):
+    for step in range(opt.max_step):
         iter_start_time = time.time()
         inputs = loader.next_batch()
 
@@ -63,7 +63,7 @@ def test_gmm(opt, loader, model):
     model.eval()
 
     base_name = os.path.basename(opt.name)
-    save_dir = os.path.join(opt.result_dir, base_name, opt.datamode)
+    save_dir = os.path.join("results", base_name, opt.datamode)
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     warp_cloth_dir = os.path.join(save_dir, 'warp-cloth')
@@ -76,8 +76,7 @@ def test_gmm(opt, loader, model):
     for step, inputs in enumerate(loader.data_loader):
         iter_start_time = time.time()
 
-        clothes_names = inputs['c_name']
-        im = inputs['image'].cuda()
+        clothes_names = inputs['cloth_name']
         agnostic = inputs['agnostic'].cuda()
         c = inputs['cloth'].cuda()
         cm = inputs['cloth_mask'].cuda()
@@ -100,8 +99,8 @@ def main():
     print("GMM: Start to %s, named: %s!" % (opt.stage, "GMM"))
 
     # dataset setup
-    dataset = Dataset(opt)
-    dataset_loader = DataLoader(opt, dataset, "GMM")
+    dataset = Dataset(opt, "GMM")
+    dataset_loader = DataLoader(opt, dataset)
 
     model = GMM(opt)
 
@@ -113,7 +112,7 @@ def main():
     elif opt.stage == 'test':
         load_checkpoint(model, opt.checkpoint)
         with torch.no_grad():
-            test_gmm(opt, data_loader, model)
+            test_gmm(opt, dataset_loader, model)
     else:
         raise NotImplementedError('Please input train or test stage')
 
